@@ -2,22 +2,28 @@
 #include <cstdint>
 #include <vector>
 #include <queue>
+#include <algorithm>
 
-using Vertex = uint64_t;
+using Vertex = uint32_t;
+
+#define NO_EDGE 0
+#define IS_EDGE 1
+
+enum COLORS { UNDEFINED = 0, COLOR1 = 1, COLOR2 = 2};
 
 class Graph {
 protected:
-    Vertex vertex_size;
+    size_t vertex_size;
 
 public:
-    const Vertex& Get_vertex_size() const {
+    const size_t& Get_vertex_size() const {
         return vertex_size;
     }
     Graph() {
         vertex_size = 0;
     }
 
-    virtual void Add_edge(Vertex first, Vertex second) = 0;
+    virtual void Add_edge(const Vertex& first, const Vertex& second) = 0;
     virtual std::vector<Vertex> Get_neighbors(const Vertex& vertex) const = 0;
 
 };
@@ -35,17 +41,17 @@ public:
     }
 
     std::vector<Vertex> Get_neighbors(const Vertex& ver) const override {
-        std::vector<Vertex> answer;
+        std::vector<Vertex> neighbors;
         for (Vertex i = 0; i < Get_vertex_size(); ++i) {
-            if (matrix[ver][i] != 0) {
-                answer.push_back(i);
+            if (matrix[ver][i] != NO_EDGE) {
+                neighbors.push_back(i);
             }
         }
-        return answer;
+        return neighbors;
     }
 
-    void Add_edge(Vertex first, Vertex second) override {
-        matrix[--first][--second] = 1;
+    void Add_edge(const Vertex& first, const Vertex& second) override {
+        matrix[first][second] = 1;
         matrix[second][first] = 1;
     }
 };
@@ -64,62 +70,20 @@ public:
         return list.at(ver);
     }
 
-    void Add_edge(Vertex first, Vertex second) override {
-        list[--first].push_back(--second);
+    void Add_edge(const Vertex& first, const Vertex& second) override {
+        list[first].push_back(second);
         list[second].push_back(first);
     }
 };
-
-std::vector<Vertex> Short_path(const Graph& G, Vertex begin, Vertex end) {
-    --begin;
-    --end;
-    std::vector<uint64_t> distance(G.Get_vertex_size(), __LONG_MAX__);
-    std::vector<Vertex> parent(G.Get_vertex_size(), __LONG_MAX__);
-    std::queue<Vertex> queue;
-
-    distance[begin] = 0;
-    queue.push(begin);
-
-    while (!queue.empty()) {
-
-        Vertex v = queue.front();
-        queue.pop();
-
-        auto neighbors = G.Get_neighbors(v);
-        for (auto& u: neighbors) {
-            if (distance[u] == __LONG_MAX__) {
-                distance[u] = distance[v] + 1;
-                parent[u] = v;
-                queue.push(u);
-            }
-        }
-    }
-
-    std::vector<Vertex> answer;
-    if (distance[end] == __LONG_MAX__) {
-        return answer;
-    }
-
-    for (Vertex v = end; v != begin; v = parent[v]) {
-        answer.push_back(v);
-    }
-    answer.push_back(begin);
-
-    for (uint64_t i = 0; i < answer.size() / 2; ++i) {
-        std::swap(answer[i], answer[answer.size() - 1 - i]);
-    }
-
-    return answer;
-}
 
 bool Bipartite_graph(const Graph& G) {
 
     std::vector<uint64_t> color(G.Get_vertex_size(), 0);
 
     for (uint64_t begin = 0; begin < G.Get_vertex_size(); ++begin) {
-        if (color[begin] == 0) {
+        if (color[begin] == UNDEFINED) {
             std::queue<Vertex> queue;
-            color[begin] = 1;
+            color[begin] = COLOR1;
             queue.push(begin);
 
             while (!queue.empty()) {
@@ -128,11 +92,11 @@ bool Bipartite_graph(const Graph& G) {
                 queue.pop();
 
                 for (auto &u: G.Get_neighbors(v)) {
-                    if (color[u] == 0) {
-                        if (color[v] == 1) {
-                            color[u] = 2;
+                    if (color[u] == UNDEFINED) {
+                        if (color[v] == COLOR1) {
+                            color[u] = COLOR2;
                         } else {
-                            color[u] = 1;
+                            color[u] = COLOR1;
                         }
                         queue.push(u);
                     } else {
@@ -148,13 +112,13 @@ bool Bipartite_graph(const Graph& G) {
 }
 
 int main() {
-    Vertex n = 0;
-    Vertex m = 0;
-    std::cin >> n >> m;
+    Vertex vertex_size = 0;
+    Vertex segment_size = 0;
+    std::cin >> vertex_size >> segment_size;
 
-    Graph_list G(n);
+    Graph_list G(vertex_size);
 
-    for (uint64_t i = 0; i < m; ++i) {
+    for (uint64_t i = 0; i < segment_size; ++i) {
         Vertex first = 0;
         Vertex second = 0;
         std::cin >> first >> second;
