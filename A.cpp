@@ -2,22 +2,26 @@
 #include <cstdint>
 #include <vector>
 #include <queue>
+#include <algorithm>
 
-using Vertex = uint64_t;
+using Vertex = uint32_t;
+
+#define NO_EDGE 0
+#define IS_EDGE 1
 
 class Graph {
 protected:
-    Vertex vertex_size;
+    size_t vertex_size;
 
 public:
-    const Vertex& Get_vertex_size() const {
+    const size_t& Get_vertex_size() const {
         return vertex_size;
     }
     Graph() {
         vertex_size = 0;
     }
 
-    virtual void Add_edge(Vertex first, Vertex second) = 0;
+    virtual void Add_edge(const Vertex& first, const Vertex& second) = 0;
     virtual std::vector<Vertex> Get_neighbors(const Vertex& vertex) const = 0;
 
 };
@@ -35,17 +39,17 @@ public:
     }
 
     std::vector<Vertex> Get_neighbors(const Vertex& ver) const override {
-        std::vector<Vertex> answer;
+        std::vector<Vertex> neighbors;
         for (Vertex i = 0; i < Get_vertex_size(); ++i) {
-            if (matrix[ver][i] != 0) {
-                answer.push_back(i);
+            if (matrix[ver][i] != NO_EDGE) {
+                neighbors.push_back(i);
             }
         }
-        return answer;
+        return neighbors;
     }
 
-    void Add_edge(Vertex first, Vertex second) override {
-        matrix[--first][--second] = 1;
+    void Add_edge(const Vertex& first, const Vertex& second) override {
+        matrix[first][second] = 1;
         matrix[second][first] = 1;
     }
 };
@@ -64,17 +68,15 @@ public:
         return list.at(ver);
     }
 
-    void Add_edge(Vertex first, Vertex second) override {
-        list[--first].push_back(--second);
+    void Add_edge(const Vertex& first, const Vertex& second) override {
+        list[first].push_back(second);
         list[second].push_back(first);
     }
 };
 
-std::vector<Vertex> Short_path(const Graph& G, Vertex begin, Vertex end) {
-    --begin;
-    --end;
-    std::vector<uint64_t> distance(G.Get_vertex_size(), __LONG_MAX__);
-    std::vector<Vertex> parent(G.Get_vertex_size(), __LONG_MAX__);
+std::vector<Vertex> Short_path(const Graph& G, const Vertex& begin, const Vertex& end) {
+    std::vector<uint32_t> distance(G.Get_vertex_size(), __INT_MAX__);
+    std::vector<Vertex> parent(G.Get_vertex_size(), __INT_MAX__);
     std::queue<Vertex> queue;
 
     distance[begin] = 0;
@@ -82,57 +84,54 @@ std::vector<Vertex> Short_path(const Graph& G, Vertex begin, Vertex end) {
 
     while (!queue.empty()) {
 
-        Vertex v = queue.front();
+        Vertex top = queue.front();
         queue.pop();
 
-        auto neighbors = G.Get_neighbors(v);
-        for (auto& u: neighbors) {
-            if (distance[u] == __LONG_MAX__) {
-                distance[u] = distance[v] + 1;
-                parent[u] = v;
-                queue.push(u);
+        for (auto& elem: G.Get_neighbors(top)) {
+            if (distance[elem] == __INT_MAX__) {
+                distance[elem] = distance[top] + 1;
+                parent[elem] = top;
+                queue.push(elem);
             }
         }
     }
 
-    std::vector<Vertex> answer;
-    if (distance[end] == __LONG_MAX__) {
-        return answer;
+    std::vector<Vertex> short_path;
+    if (distance[end] == __INT_MAX__) {
+        return short_path;
     }
 
     for (Vertex v = end; v != begin; v = parent[v]) {
-        answer.push_back(v);
+        short_path.push_back(v);
     }
-    answer.push_back(begin);
+    short_path.push_back(begin);
 
-    for (uint64_t i = 0; i < answer.size() / 2; ++i) {
-        std::swap(answer[i], answer[answer.size() - 1 - i]);
-    }
+    std::reverse(short_path.begin(), short_path.end());
 
-    return answer;
+    return short_path;
 }
 
 int main() {
-    Vertex n = 0;
-    Vertex m = 0;
-    std::cin >> n >> m;
+    Vertex vertex_size = 0;
+    Vertex segment_size = 0;
+    std::cin >> vertex_size >> segment_size;
 
     Vertex beg = 0;
     Vertex end = 0;
     std::cin >> beg >> end;
 
-    Graph_list G(n);
+    Graph_list G(vertex_size);
 
-    for (uint64_t i = 0; i < m; ++i) {
+    for (uint64_t i = 0; i < segment_size; ++i) {
         Vertex first = 0;
         Vertex second = 0;
         std::cin >> first >> second;
-        G.Add_edge(first, second);
+        G.Add_edge(--first, --second);
     }
 
-    auto ans = Short_path(G, beg, end);
+    auto ans = Short_path(G, --beg, --end);
 
-    if (ans.size() == 0) {
+    if (ans.empty()) {
         std::cout << -1;
         return 0;
     }
